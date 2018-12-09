@@ -15,7 +15,7 @@ function findMinReactions(str) {
 
     var re = new RegExp('[' + letter + letter.toUpperCase() + ']', 'g')
     var newStr = str.replace(re, '')
-    var replacedStr = removeReactions(newStr)
+    var replacedStr = reactPolymer(newStr)
     if (replacedStr.length < min) {
       min = replacedStr.length
     }
@@ -23,23 +23,19 @@ function findMinReactions(str) {
   return min
 }
 
-function removeReactions(inStr) {
-  var anyReactions = true
-  var str = inStr
-  while (anyReactions) {
-    var newStr = ''
-    anyReactions = false
-    for (var i = 0; i < str.length; i++) {
-      if (i < str.length - 1 && hasReaction(str.charAt(i), str.charAt(i+1))) {
-        i++
-        anyReactions = true
-      } else {
-        newStr += str.charAt(i)
-      }
+function reactPolymer(str) {
+  var accumulator = str.charAt(0)
+  var remaining = str.substring(1)
+  while (remaining) {
+    if (accumulator && hasReaction(accumulator.charAt(accumulator.length - 1), remaining.charAt(0))) {
+      accumulator = accumulator.substring(0, accumulator.length - 1)
+      remaining = remaining.substring(1)
+    } else {
+      accumulator += remaining.charAt(0)
+      remaining = remaining.substring(1)
     }
-    str = newStr
   }
-  return str
+  return accumulator
 }
 
 function hasReaction(first, second) {

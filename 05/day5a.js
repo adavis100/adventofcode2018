@@ -1,32 +1,28 @@
 var fs = require('fs')
  
 
-//console.log('aA = '  + removeReactions('aA').length)
-//console.log('abBA = ' + removeReactions('abBA').length)
-//console.log('abAB = ' + removeReactions('abAB').length)
-//console.log('dabAcCaCBAcCcaDA = ' + removeReactions('dabAcCaCBAcCcaDA').length)
+// console.log('aA = '  + reactPolymer('aA').length + ' expect 0')
+// console.log('abBA = ' + reactPolymer('abBA').length + ' expect 0')
+// console.log('abAB = ' + reactPolymer('abAB').length + ' expect 4')
+// console.log('dabAcCaCBAcCcaDA = ' + reactPolymer('dabAcCaCBAcCcaDA').length + ' expect 10')
 fs.readFile('input.txt', 'utf8', (err, str) => {
   str = str.replace(/\n/, '')
-  console.log(removeReactions(str).length)
+  console.log(reactPolymer(str).length)
 })
 
-function removeReactions(inStr) {
-  var anyReactions = true
-  var str = inStr
-  while (anyReactions) {
-    var newStr = ''
-    anyReactions = false
-    for (var i = 0; i < str.length; i++) {
-      if (i < str.length - 1 && hasReaction(str.charAt(i), str.charAt(i+1))) {
-        i++
-        anyReactions = true
-      } else {
-        newStr += str.charAt(i)
-      }
+function reactPolymer(str) {
+  var accumulator = str.charAt(0)
+  var remaining = str.substring(1)
+  while (remaining) {
+    if (accumulator && hasReaction(accumulator.charAt(accumulator.length - 1), remaining.charAt(0))) {
+      accumulator = accumulator.substring(0, accumulator.length - 1)
+      remaining = remaining.substring(1)
+    } else {
+      accumulator += remaining.charAt(0)
+      remaining = remaining.substring(1)
     }
-    str = newStr
   }
-  return str
+  return accumulator
 }
 
 function hasReaction(first, second) {
