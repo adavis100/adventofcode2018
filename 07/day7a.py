@@ -1,17 +1,21 @@
 import bisect
 import re
 import string
+from sortedcontainers import SortedSet
 
 
 def main():
     with open("input.txt") as file:
         lines = file.readlines()
-    deps = {}
+    dependencies = {}
+    provides = {}
     for line in lines:
         (step, dependsOn) = parse(line)
-        add_dep(deps, step, dependsOn)
-    findDependencyOrder(deps)
-    print()
+        add_dependencies(dependencies, step, dependsOn)
+        add_provides(provides, dependsOn, step)
+    ready = find_ready_steps(dependencies)
+    order = findDependencyOrder(ready, dependencies, provides)
+    print(order)
 
 
 def parse(line):
@@ -20,7 +24,7 @@ def parse(line):
         return (m[2], m[1])
 
 
-def add_dep(deps, step, dependsOn):
+def add_dependencies(deps, step, dependsOn):
     if step not in deps:
         deps[step] = []
     if dependsOn not in deps:
@@ -28,28 +32,39 @@ def add_dep(deps, step, dependsOn):
     add_edge(deps, step, dependsOn)
 
 
-def add_edge(deps, step, dependsOn):
-      bisect.insort(deps[step], dependsOn)
+def add_provides(provides, provider, step):
+    if provider not in provides:
+        provides[provider] = []
+    add_edge(provides, provider, step) 
 
 
-def findDependencyOrder(deps):
-    while deps:
-        removeDep(deps)
+def add_edge(graph, node, neighbor):
+      bisect.insort(graph[node], neighbor)
 
 
-def removeDep(deps):
-    for letter in string.ascii_uppercase:
-        if letter in deps and not deps[letter]:
-            print(letter, end='')
-            del deps[letter]
-            removeStep(deps, letter)
-            return
-
-
-def removeStep(deps, letter):
+def find_ready_steps(deps):
+    ready = SortedSet()
     for step in deps:
-        if letter in deps[step]:
-            deps[step].remove(letter)
+        if not deps[step]:
+            ready.add(step)
+    return ready
+
+
+def findDependencyOrder(ready, deps, provides):
+    order = ''
+    while ready:
+        step = ready.pop(0)
+        order += step
+        removeDeps(step, ready, deps, provides)
+    return order
+
+
+def removeDeps(step, ready, deps, provides):
+    if step in provides:
+        for dep in provides[step]:
+            deps[dep].remove(step)
+            if not deps[dep]:
+                ready.add(dep)
 
 
 if __name__ == '__main__':
