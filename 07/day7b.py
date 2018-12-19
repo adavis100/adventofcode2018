@@ -51,15 +51,51 @@ def find_ready_steps(deps):
 
 
 def find_dependency_order(ready, deps, provides):
-    order = ''
-    while ready:
-        step = ready.pop(0)
-        order += step
-        remove_dependencies(step, ready, deps, provides)
-    return order
+    done = ''
+    time = 0
+    workers  = [None] * 5
+    while ready or any(workers):
+        assign_workers(workers, time, ready, deps, provides)
+        done += remove_done(workers, time, ready, deps, provides)
+        print('{} workers = {} done = {}'.format(time, workers, done))
+        time += 1
+    print('Total time = {}'.format(time))
+    return done
 
 
-def remove_dependencies(step, ready, deps, provides):
+class Worker:
+    def __init__(self, id, start):
+        self.id = id
+        self.start = start
+        self.end = start + 60 + self.time_to_process_letter(id)
+    def time_to_process_letter(self, letter):
+        return ord(letter) - ord('A')
+    def __repr__(self):
+        return self.id
+
+
+def assign_workers(workers, time, ready, deps, provides):
+    for i, worker in enumerate(workers):
+        if not worker and ready:
+            workers[i] = Worker(ready.pop(0), time)
+    return
+
+
+def remove_done(workers, time, ready, deps, provides):
+    done = ''
+    for i, worker in enumerate(workers):
+        if worker and is_done(worker, time):
+            done += worker.id
+            remove_deps(worker.id, ready, deps, provides)
+            workers[i] = None
+    return done
+
+
+def is_done(worker, time):
+    return time == worker.end
+
+
+def remove_deps(step, ready, deps, provides):
     if step in provides:
         for dep in provides[step]:
             deps[dep].remove(step)
