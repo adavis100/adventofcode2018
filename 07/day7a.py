@@ -10,9 +10,9 @@ def main():
     dependencies = {}
     provides = {}
     for line in lines:
-        (step, dependsOn) = parse(line)
-        add_dependencies(dependencies, step, dependsOn)
-        add_provides(provides, dependsOn, step)
+        (step, depends_on) = parse(line)
+        add_dependencies(dependencies, step, depends_on)
+        add_provides(provides, depends_on, step)
     ready = find_ready_steps(dependencies)
     order = find_dependency_order(ready, dependencies, provides)
     print(order)
@@ -24,12 +24,12 @@ def parse(line):
         return (m[2], m[1])
 
 
-def add_dependencies(deps, step, dependsOn):
+def add_dependencies(deps, step, depends_on):
     if step not in deps:
         deps[step] = []
-    if dependsOn not in deps:
-        deps[dependsOn] = []
-    add_edge(deps, step, dependsOn)
+    if depends_on not in deps:
+        deps[depends_on] = []
+    add_edge(deps, step, depends_on)
 
 
 def add_provides(provides, provider, step):

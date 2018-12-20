@@ -4,16 +4,20 @@ import string
 from sortedcontainers import SortedSet
 
 
+WORKER_COUNT = 5
+BASE_WORK_TIME = 60
+
+
 def main():
     with open("input.txt") as file:
         lines = file.readlines()
     dependencies = {}
     provides = {}
     for line in lines:
-        (step, dependsOn) = parse(line)
-        add_dependencies(dependencies, step, dependsOn)
-        add_provides(provides, dependsOn, step)
-    ready = find_ready_steps(dependencies)
+        (step, depends_on) = parse(line)
+        add_dependencies(dependencies, step, depends_on)
+        add_provides(provides, depends_on, step)
+    ready = get_ready_steps(dependencies)
     order = find_dependency_order(ready, dependencies, provides)
     print(order)
 
@@ -24,12 +28,12 @@ def parse(line):
         return (m[2], m[1])
 
 
-def add_dependencies(deps, step, dependsOn):
+def add_dependencies(deps, step, depends_on):
     if step not in deps:
         deps[step] = []
-    if dependsOn not in deps:
-        deps[dependsOn] = []
-    add_edge(deps, step, dependsOn)
+    if depends_on not in deps:
+        deps[depends_on] = []
+    add_edge(deps, step, depends_on)
 
 
 def add_provides(provides, provider, step):
@@ -42,7 +46,7 @@ def add_edge(graph, node, neighbor):
       bisect.insort(graph[node], neighbor)
 
 
-def find_ready_steps(deps):
+def get_ready_steps(deps):
     ready = SortedSet()
     for step in deps:
         if not deps[step]:
@@ -53,9 +57,10 @@ def find_ready_steps(deps):
 def find_dependency_order(ready, deps, provides):
     done = ''
     time = 0
-    workers  = [None] * 5
-    while ready or any(workers):
-        assign_workers(workers, time, ready, deps, provides)
+    workers  = [Worker() for _ in range(WORKER_COUNT)]
+
+    while ready or any(worker.is_assigned() for worker in workers):
+        assign_workers(workers, time, ready)
         done += remove_done(workers, time, ready, deps, provides)
         print('{} workers = {} done = {}'.format(time, workers, done))
         time += 1
@@ -64,35 +69,42 @@ def find_dependency_order(ready, deps, provides):
 
 
 class Worker:
-    def __init__(self, id, start):
+    def __init__(self):
+        self.id = None
+        self.start = 0
+
+    def assign(self, id, start):
         self.id = id
         self.start = start
-        self.end = start + 60 + self.time_to_process_letter(id)
-    def time_to_process_letter(self, letter):
-        return ord(letter) - ord('A')
-    def __repr__(self):
+
+    def is_assigned(self):
         return self.id
 
+    def is_done(self, time):
+        return time == self.start + BASE_WORK_TIME + ord(self.id) - ord('A')
 
-def assign_workers(workers, time, ready, deps, provides):
-    for i, worker in enumerate(workers):
-        if not worker and ready:
-            workers[i] = Worker(ready.pop(0), time)
+    def free(self):
+        self.id = None
+
+    def __repr__(self):
+        return self.id if self.id else '-'
+
+
+def assign_workers(workers, time, ready):
+    for worker in workers:
+        if not worker.is_assigned() and ready:
+            worker.assign(ready.pop(0), time)
     return
 
 
 def remove_done(workers, time, ready, deps, provides):
     done = ''
-    for i, worker in enumerate(workers):
-        if worker and is_done(worker, time):
+    for worker in workers:
+        if worker.is_assigned() and worker.is_done(time):
             done += worker.id
             remove_deps(worker.id, ready, deps, provides)
-            workers[i] = None
+            worker.free()
     return done
-
-
-def is_done(worker, time):
-    return time == worker.end
 
 
 def remove_deps(step, ready, deps, provides):
