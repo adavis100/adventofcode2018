@@ -24,12 +24,25 @@ class Node:
     def __init__(self, children, metadata):
         self.children = children
         self.metadata = metadata
+        self.metadata_count = None
 
     def get_metadata_count(self):
-        child_metadata = 0
-        for child in self.children:
-            child_metadata += child.get_metadata_count()
-        return sum(self.metadata) + child_metadata
+        count = 0
+        if self.metadata_count:
+            count = self.metadata_count
+        elif not self.children:
+            count = sum(self.metadata)
+        else:
+            count = self.sum_child_metadata()
+        self.metadata_count = count
+        return count
+    
+    def sum_child_metadata(self):
+        count = 0
+        for i in self.metadata:
+            if i <= len(self.children):
+                count += self.children[i - 1].get_metadata_count()
+        return count
 
     def __repr__(self):
         return('( children = {} metadata = {} )'.format(self.children, self.metadata))
