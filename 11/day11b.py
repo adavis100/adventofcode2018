@@ -3,43 +3,57 @@ GRID_SIZE = 300
 
 
 def main():
-    power_grid = get_power_grid()
-    grid_maxes = get_grid_maxes(power_grid)
-    max_coord = get_max_coord(grid_maxes)
+    power_dict = get_power_grid()
+    max_coord = get_grid_maxes(power_dict)
     print(max_coord)
     return
 
 
 def get_power_grid():
-    grid = [[]] * GRID_SIZE
+    power_dict = {}
     for x in range(1, GRID_SIZE - 1):
-        grid[x] = [0] * GRID_SIZE
         for y in range(1, GRID_SIZE - 1):
-            grid[x][y] = get_power_level(x, y)
-    return grid
+            power_dict[(x, y, 1)] = get_power_level(x, y)
+    return power_dict
 
 
-def get_grid_maxes(power_grid):
-    grid = [[]] * GRID_SIZE
-    for x in range(1, GRID_SIZE - 1):
-        grid[x] = [0] * GRID_SIZE
-        for y in range(1, GRID_SIZE - 1):
-            grid[x][y] = get_n_by_n_total(x, y, power_grid)
-    return grid
+def get_grid_maxes(power_dict):
+    max_power = 0
+    max_coord = (0, 0, 0)
+    for box_size in range(2, GRID_SIZE):
+        max_box_start = GRID_SIZE - box_size
+        for x in range(1, max_box_start):
+            for y in range(1, max_box_start):
+                if box_size % 2 == 0:
+                    half = int(box_size / 2)
+                    power_dict[(x, y, box_size)] = (power_dict[(x, y, half)] +
+                                                    power_dict[(x, y + half, half)] +
+                                                    power_dict[(x + half, y, half)] +
+                                                    power_dict[(x + half, y + half, half)])
+                else:
+                    power_dict[(x, y, box_size)] = (power_dict[(x+1, y+1, box_size -1)] +
+                                                    power_dict[(x, y, 1)] +
+                                                    sumxs(x + 1, y, box_size - 1, power_dict) +
+                                                    sumys(x, y + 1, box_size - 1, power_dict))
+                if power_dict[(x, y, box_size)] > max_power:
+                    max_power = power_dict[(x, y, box_size)]
+                    max_coord = (x, y, box_size)
+                    print('New max power {} at {}'.format(max_power, max_coord))
+    return max_coord
 
 
-def get_n_by_n_total(x, y, power_grid):
-    max_pow = 0
-    max_n = 0
-    for box_size in range(GRID_SIZE - max([x, y])):
-        power = 0
-        for i in range(box_size):
-            for j in range(box_size):
-                power += power_grid[x+i][y+j]
-        if power > max_pow:
-            max_pow = power
-            max_n = box_size
-    return (max_n, max_pow)
+def sumxs(x, y, size, power_dict):
+    total = 0
+    for i in range(size):
+        total += power_dict[(x + i, y, 1)]
+    return total
+
+
+def sumys(x, y, size, power_dict):
+    total = 0
+    for i in range(size):
+        total += power_dict[(x, y + i, 1)]
+    return total
 
 
 def get_power_level(x, y):
@@ -49,19 +63,6 @@ def get_power_level(x, y):
     power *= rack_id
     power = int(power / 100) % 10 - 5
     return power
-
-
-def get_max_coord(grid):
-    max_pow = 0
-    max_coord = (0, 0)
-    for x in range(1, GRID_SIZE - 1):
-        for y in range(1, GRID_SIZE - 1):
-            (n, power) = grid[x][y]
-            if power > max_pow:
-                max_pow = power
-                max_coord = (x, y, n)
-                # print('new max at ({} {}) with size {} of {}'.format(x, y, n, max_pow))
-    return max_coord
 
 
 if __name__ == '__main__':
